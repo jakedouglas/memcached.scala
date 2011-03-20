@@ -71,7 +71,7 @@ object RequestBuilder {
 class Memcached(host: String, port: Int) {
   class ProtocolError(message: String) extends Error(message)
 
-  private val addr            = new InetSocketAddress("localhost", 11211)
+  private val addr            = new InetSocketAddress(host, port)
   private val channel         = SocketChannel.open(addr)
   private val header          = ByteBuffer.allocate(24)
 
