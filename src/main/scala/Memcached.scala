@@ -12,6 +12,11 @@ class Memcached(host: String, port: Int) {
   private val channel         = SocketChannel.open(addr)
   private val header          = ByteBuffer.allocate(24)
 
+  def flush(after: Option[Int] = None): Unit = {
+    channel.write(RequestBuilder.flush(after))
+    handleResponse(Ops.Flush, handleFlushResponse)
+  }
+
   def get(key: Array[Byte]): Option[Array[Byte]] = {
     channel.write(RequestBuilder.get(key))
     handleResponse(Ops.Get, handleGetResponse)
@@ -19,10 +24,16 @@ class Memcached(host: String, port: Int) {
 
   def set(key:   Array[Byte],
           value: Array[Byte],
-          ttl:   Int = 0,
-          flags: Int = 0) = {
-    channel.write(RequestBuilder.storageRequest(Ops.Set, key, value, flags, ttl))
+          ttl:   Int = 0) = {
+    channel.write(RequestBuilder.storageRequest(Ops.Set, key, value, 0, ttl))
     handleResponse(Ops.Set, handleStorageResponse)
+  }
+
+  private def handleFlushResponse(header: ByteBuffer, body: ByteBuffer): Unit = {
+    header.getShort(6) match {
+      case Status.Success  => ()
+      case code            => throw new ProtocolError("Unexpected status code %d".format(code))
+    }
   }
 
   private def handleStorageResponse(header: ByteBuffer, body: ByteBuffer): Boolean = {
@@ -35,7 +46,7 @@ class Memcached(host: String, port: Int) {
   }
 
   private def handleGetResponse(header: ByteBuffer, body: ByteBuffer): Option[Array[Byte]] = {
-    val extras  = header.get(4).toInt
+    val extras = header.get(4).toInt
 
     header.getShort(6) match {
       case Status.Success => Some(body.array.slice(extras, body.capacity))

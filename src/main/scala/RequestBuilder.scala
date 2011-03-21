@@ -5,7 +5,7 @@ import com.bitlove.memcached.protocol._
 import java.nio.ByteBuffer
 
 object RequestBuilder {
-  def flush(after: Option[Int] = None): Array[ByteBuffer] = {
+  def flush(after: Option[Int]): Array[ByteBuffer] = {
     after match {
       case None          => {
         Array(newRequest(24, Ops.Flush))
