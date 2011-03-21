@@ -28,7 +28,7 @@ object SetAndGetSpec extends Specification with Mockito {
     c.set(key, "blah".getBytes, ttl = 1)
     new String(c.get(key).get) must beEqualTo("blah")
 
-    Thread.sleep(1500)
+    Thread.sleep(2000)
 
     c.get(key) must beEqualTo(None)
   }

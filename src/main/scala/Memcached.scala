@@ -8,9 +8,9 @@ import com.bitlove.memcached.protocol._
 class Memcached(host: String, port: Int) {
   class ProtocolError(message: String) extends Error(message)
 
-  private val addr            = new InetSocketAddress(host, port)
-  private val channel         = SocketChannel.open(addr)
-  private val header          = ByteBuffer.allocate(24)
+  private val addr    = new InetSocketAddress(host, port)
+  private val channel = SocketChannel.open(addr)
+  private val header  = ByteBuffer.allocate(24)
 
   def flush(after: Option[Int] = None): Unit = {
     channel.write(RequestBuilder.flush(after))
@@ -29,6 +29,20 @@ class Memcached(host: String, port: Int) {
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
+  def add(key:   Array[Byte],
+          value: Array[Byte],
+          ttl:   Int = 0) = {
+    channel.write(RequestBuilder.storageRequest(Ops.Add, key, value, 0, ttl))
+    handleResponse(Ops.Add, handleStorageResponse)
+  }
+
+  def replace(key:   Array[Byte],
+              value: Array[Byte],
+              ttl:   Int = 0) = {
+    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, value, 0, ttl))
+    handleResponse(Ops.Replace, handleStorageResponse)
+  }
+
   private def handleFlushResponse(header: ByteBuffer, body: ByteBuffer): Unit = {
     header.getShort(6) match {
       case Status.Success  => ()
@@ -38,10 +52,11 @@ class Memcached(host: String, port: Int) {
 
   private def handleStorageResponse(header: ByteBuffer, body: ByteBuffer): Boolean = {
     header.getShort(6) match {
-      case Status.Success   => true
-      case Status.KeyExists => false
-      case Status.NotStored => false
-      case code             => throw new ProtocolError("Unexpected status code %d".format(code))
+      case Status.Success     => true
+      case Status.KeyNotFound => false
+      case Status.KeyExists   => false
+      case Status.NotStored   => false
+      case code               => throw new ProtocolError("Unexpected status code %d".format(code))
     }
   }
 
