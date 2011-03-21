@@ -6,8 +6,9 @@ object Packets {
 }
 
 object Ops {
-  val Get = 0x00.toByte
-  val Set = 0x01.toByte
+  val Get   = 0x00.toByte
+  val Set   = 0x01.toByte
+  val Flush = 0x08.toByte
 }
 
 object Status {
