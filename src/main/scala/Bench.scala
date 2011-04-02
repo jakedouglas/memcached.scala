@@ -28,6 +28,8 @@ object Runbench {
     val key3  = ("Long"         * 40).getBytes
     val key4  = ("Medium"       * 8 ).getBytes
 
+    val counterKey = "counter".getBytes
+
     val value = Array(4, 8, 91, 0).map(_.toByte)
 
     val iterations = 2500
@@ -68,6 +70,16 @@ object Runbench {
         c.get(key2)
         c.set(key3, value)
         c.get(key3)
+      }
+    })
+
+    Bench("incr/decr", 5, {
+      (1 to iterations).foreach { i =>
+        c.incr(counterKey, 1, default = Some(1))
+      }
+
+      (1 to iterations).foreach { i =>
+        c.decr(counterKey, 1)
       }
     })
   }

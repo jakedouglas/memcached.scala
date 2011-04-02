@@ -12,6 +12,22 @@ class Memcached(host: String, port: Int) {
   private val channel = SocketChannel.open(addr)
   private val header  = ByteBuffer.allocate(24)
 
+  def incr(key:     Array[Byte],
+           count:   Long = 1,
+           ttl:     Int  = 0,
+           default: Option[BigInt] = None): Option[BigInt] = {
+    channel.write(RequestBuilder.incrOrDecr(Ops.Increment, key, count, ttl, default))
+    handleResponse(Ops.Increment, handleIncrDecrResponse)
+  }
+
+  def decr(key:     Array[Byte],
+           count:   Long = 1,
+           ttl:     Int  = 0,
+           default: Option[BigInt] = None): Option[BigInt] = {
+    channel.write(RequestBuilder.incrOrDecr(Ops.Decrement, key, count, ttl, default))
+    handleResponse(Ops.Decrement, handleIncrDecrResponse)
+  }
+
   def flush(after: Option[Int] = None): Unit = {
     channel.write(RequestBuilder.flush(after))
     handleResponse(Ops.Flush, handleFlushResponse)
@@ -41,6 +57,15 @@ class Memcached(host: String, port: Int) {
               ttl:   Int = 0) = {
     channel.write(RequestBuilder.storageRequest(Ops.Replace, key, value, 0, ttl))
     handleResponse(Ops.Replace, handleStorageResponse)
+  }
+
+  private def handleIncrDecrResponse(header: ByteBuffer, body: ByteBuffer): Option[BigInt] = {
+    header.getShort(6) match {
+      case Status.Success     => Some(BigInt(1, body.array))
+      case Status.KeyNotFound => None
+      case Status.BadIncrDecr => throw new ProtocolError("Incr/decr on non-numeric value")
+      case code               => throw new ProtocolError("Unexpected status code %d".format(code))
+    }
   }
 
   private def handleFlushResponse(header: ByteBuffer, body: ByteBuffer): Unit = {
@@ -95,6 +120,8 @@ class Memcached(host: String, port: Int) {
     while (read < len) {
       read += channel.read(buffer)
     }
+
+    buffer.flip
   }
 
   private def verifyMagic = {
