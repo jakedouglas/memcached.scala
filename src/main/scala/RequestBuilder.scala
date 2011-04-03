@@ -63,6 +63,16 @@ object RequestBuilder {
           ByteBuffer.wrap(value))
   }
 
+  def appendOrPrepend(opcode: Byte,
+                      key:    Array[Byte],
+                      value:  Array[Byte]): Array[ByteBuffer] = {
+
+    Array(newRequest(24, opcode).putShort (2,  key.size.toShort)
+                                .putInt   (8,  key.size + value.size),
+          ByteBuffer.wrap(key),
+          ByteBuffer.wrap(value))
+  }
+
   private def newRequest(size: Int, opcode: Byte): ByteBuffer = {
     ByteBuffer.allocate(size).put(0, Packets.Request)
                              .put(1, opcode)

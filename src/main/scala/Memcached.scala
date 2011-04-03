@@ -12,6 +12,18 @@ class Memcached(host: String, port: Int) {
   private val channel = SocketChannel.open(addr)
   private val header  = ByteBuffer.allocate(24)
 
+  def append(key:   Array[Byte],
+             value: Array[Byte]): Boolean = {
+    channel.write(RequestBuilder.appendOrPrepend(Ops.Append, key, value))
+    handleResponse(Ops.Append, handleStorageResponse)
+  }
+
+  def prepend(key:   Array[Byte],
+              value: Array[Byte]): Boolean = {
+    channel.write(RequestBuilder.appendOrPrepend(Ops.Prepend, key, value))
+    handleResponse(Ops.Prepend, handleStorageResponse)
+  }
+
   def incr(key:     Array[Byte],
            count:   Long = 1,
            ttl:     Int  = 0,
