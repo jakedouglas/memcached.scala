@@ -73,6 +73,12 @@ object RequestBuilder {
           ByteBuffer.wrap(value))
   }
 
+  def delete(key: Array[Byte]): Array[ByteBuffer] = {
+    Array(newRequest(24, Ops.Delete).putShort (2,  key.size.toShort)
+                                    .putInt   (8,  key.size),
+          ByteBuffer.wrap(key))
+  }
+
   private def newRequest(size: Int, opcode: Byte): ByteBuffer = {
     ByteBuffer.allocate(size).put(0, Packets.Request)
                              .put(1, opcode)

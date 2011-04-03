@@ -71,6 +71,11 @@ class Memcached(host: String, port: Int) {
     handleResponse(Ops.Replace, handleStorageResponse)
   }
 
+  def delete(key: Array[Byte]): Boolean = {
+    channel.write(RequestBuilder.delete(key))
+    handleResponse(Ops.Delete, handleStorageResponse)
+  }
+
   private def handleIncrDecrResponse(header: ByteBuffer, body: ByteBuffer): Option[BigInt] = {
     header.getShort(6) match {
       case Status.Success     => Some(BigInt(1, body.array))

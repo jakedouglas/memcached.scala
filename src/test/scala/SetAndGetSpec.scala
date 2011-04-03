@@ -19,6 +19,12 @@ object SetAndGetSpec extends Specification with Mockito {
 
     c.set(key, "boom".getBytes)
     new String(c.get(key).get) must beEqualTo("boom")
+
+    "delete" in {
+      c.delete(key) must beEqualTo(true)
+      c.get(key) must beEqualTo(None)
+      c.delete(key) must beEqualTo(false)
+    }
   }
 
   "with ttl" in {
