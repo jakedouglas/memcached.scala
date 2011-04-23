@@ -110,9 +110,9 @@ class Memcached[T](host:       String,
   private def handleGetResponse(header: ByteBuffer, body: ByteBuffer): Option[T] = {
     header.getShort(6) match {
       case Status.Success => {
-        val extras  = header.get(4).toInt
-        val encoded = new EncodedValue(data  = body.array.slice(extras, body.capacity),
-                                       flags = body.getInt(0))
+        val extrasLen  = header.get(4).toInt
+        val encoded    = new EncodedValue(data  = body.array.slice(extrasLen, body.capacity),
+                                          flags = body.getInt(0))
         Some(transcoder.decode(encoded))
       }
       case _ => None
