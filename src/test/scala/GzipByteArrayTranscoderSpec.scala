@@ -1,13 +1,11 @@
 package com.bitlove.memcached.spec
 
 import org.specs.Specification
-import org.specs.mock.Mockito
-import org.mockito.Matchers._
 
 import com.bitlove.memcached.Memcached
 import com.bitlove.memcached.GzipByteArrayTranscoder
 
-object GzipByteArrayTranscoderSpec extends Specification with Mockito {
+object GzipByteArrayTranscoderSpec extends Specification {
   val t = new GzipByteArrayTranscoder(10)
 
   "with a value smaller than the minimum size" in {
