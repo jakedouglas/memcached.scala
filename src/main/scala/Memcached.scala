@@ -5,7 +5,9 @@ import java.nio.channels.SocketChannel
 import java.net.InetSocketAddress
 import com.bitlove.memcached.protocol._
 
-class Memcached(host: String, port: Int) {
+class Memcached[T](host:       String,
+                   port:       Int,
+                   transcoder: Transcoder[T] = new ByteArrayTranscoder) {
   class ProtocolError(message: String) extends Error(message)
 
   private val addr    = new InetSocketAddress(host, port)
@@ -45,29 +47,32 @@ class Memcached(host: String, port: Int) {
     handleResponse(Ops.Flush, handleFlushResponse)
   }
 
-  def get(key: Array[Byte]): Option[Array[Byte]] = {
+  def get(key: Array[Byte]): Option[T] = {
     channel.write(RequestBuilder.get(key))
     handleResponse(Ops.Get, handleGetResponse)
   }
 
   def set(key:   Array[Byte],
-          value: Array[Byte],
+          value: T,
           ttl:   Int = 0) = {
-    channel.write(RequestBuilder.storageRequest(Ops.Set, key, value, 0, ttl))
+    val encoded = transcoder.encode(value)
+    channel.write(RequestBuilder.storageRequest(Ops.Set, key, encoded.data, encoded.flags, ttl))
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
   def add(key:   Array[Byte],
-          value: Array[Byte],
+          value: T,
           ttl:   Int = 0) = {
-    channel.write(RequestBuilder.storageRequest(Ops.Add, key, value, 0, ttl))
+    val encoded = transcoder.encode(value)
+    channel.write(RequestBuilder.storageRequest(Ops.Add, key, encoded.data, encoded.flags, ttl))
     handleResponse(Ops.Add, handleStorageResponse)
   }
 
   def replace(key:   Array[Byte],
-              value: Array[Byte],
+              value: T,
               ttl:   Int = 0) = {
-    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, value, 0, ttl))
+    val encoded = transcoder.encode(value)
+    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, encoded.data, encoded.flags, ttl))
     handleResponse(Ops.Replace, handleStorageResponse)
   }
 
@@ -102,17 +107,20 @@ class Memcached(host: String, port: Int) {
     }
   }
 
-  private def handleGetResponse(header: ByteBuffer, body: ByteBuffer): Option[Array[Byte]] = {
-    val extras = header.get(4).toInt
-
+  private def handleGetResponse(header: ByteBuffer, body: ByteBuffer): Option[T] = {
     header.getShort(6) match {
-      case Status.Success => Some(body.array.slice(extras, body.capacity))
-      case _              => None
+      case Status.Success => {
+        val extras  = header.get(4).toInt
+        val encoded = new EncodedValue(data  = body.array.slice(extras, body.capacity),
+                                       flags = body.getInt(0))
+        Some(transcoder.decode(encoded))
+      }
+      case _ => None
     }
   }
 
-  private def handleResponse[T](opcode:  Byte,
-                                handler: (ByteBuffer, ByteBuffer) => T): T = {
+  private def handleResponse[A](opcode:  Byte,
+                                handler: (ByteBuffer, ByteBuffer) => A): A = {
     fillHeader
     verifyMagic
     verifyOpcode(opcode)

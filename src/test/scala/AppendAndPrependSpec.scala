@@ -11,18 +11,24 @@ object AppendAndPrependSpec extends Specification with Mockito {
   val key      = "some key".getBytes
   val nonexist = "nonexist key".getBytes
 
-  "works" in {
-    c.flush()
-    c.get(key) must beEqualTo(None)
+  "Append and Prepend" should {
+    doBefore {
+      c.flush()
+      c.get(key) must beEqualTo(None)
+    }
 
-    c.set(key, "bar".getBytes) must beEqualTo(true)
+    "works with an existing key" in {
+      c.set(key, "bar".getBytes) must beEqualTo(true)
 
-    c.prepend(key, "foo".getBytes) must beEqualTo(true)
-    c.append(key, "baz".getBytes) must beEqualTo(true)
-    new String(c.get(key).get) must beEqualTo("foobarbaz")
+      c.prepend(key, "foo".getBytes) must beEqualTo(true)
+      c.append(key, "baz".getBytes) must beEqualTo(true)
+      new String(c.get(key).get) must beEqualTo("foobarbaz")
+    }
 
-    c.append(nonexist, "blah".getBytes) must beEqualTo(false)
-    c.prepend(nonexist, "blah".getBytes) must beEqualTo(false)
-    c.get(nonexist) must beEqualTo(None)
+    "does nothing with a nonexistant key" in {
+      c.append(nonexist, "blah".getBytes) must beEqualTo(false)
+      c.prepend(nonexist, "blah".getBytes) must beEqualTo(false)
+      c.get(nonexist) must beEqualTo(None)
+    }
   }
 }
