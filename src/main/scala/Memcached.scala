@@ -44,7 +44,12 @@ class Memcached[T](host:       String,
 
   def flush(after: Option[Int] = None): Unit = {
     channel.write(RequestBuilder.flush(after))
-    handleResponse(Ops.Flush, handleFlushResponse)
+    handleResponse(Ops.Flush, handleEmptyResponse)
+  }
+
+  def noop: Unit = {
+    channel.write(RequestBuilder.noop)
+    handleResponse(Ops.NoOp, handleEmptyResponse)
   }
 
   def get(key: Array[Byte]): Option[T] = {
@@ -81,6 +86,19 @@ class Memcached[T](host:       String,
     handleResponse(Ops.Delete, handleStorageResponse)
   }
 
+  def isConnected: Boolean = {
+    channel.isConnected
+  }
+
+  def close = {
+    try {
+      channel.write(RequestBuilder.quit)
+      channel.close
+    } catch {
+      case _ => ()
+    }
+  }
+
   private def handleIncrDecrResponse(header: ByteBuffer, body: ByteBuffer): Option[BigInt] = {
     header.getShort(6) match {
       case Status.Success     => Some(BigInt(1, body.array))
@@ -90,7 +108,7 @@ class Memcached[T](host:       String,
     }
   }
 
-  private def handleFlushResponse(header: ByteBuffer, body: ByteBuffer): Unit = {
+  private def handleEmptyResponse(header: ByteBuffer, body: ByteBuffer): Unit = {
     header.getShort(6) match {
       case Status.Success  => ()
       case code            => throw new ProtocolError("Unexpected status code %d".format(code))

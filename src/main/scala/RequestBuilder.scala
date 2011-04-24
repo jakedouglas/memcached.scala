@@ -42,6 +42,14 @@ object RequestBuilder {
     }
   }
 
+  def quit: Array[ByteBuffer] = {
+    Array(newRequest(24, Ops.Quit))
+  }
+
+  def noop: Array[ByteBuffer] = {
+    Array(newRequest(24, Ops.NoOp))
+  }
+
   def get(key: Array[Byte]): Array[ByteBuffer] = {
     Array(newRequest(24, Ops.Get).putShort(2, key.size.toShort)
                                  .putInt  (8, key.size),
