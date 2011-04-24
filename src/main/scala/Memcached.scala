@@ -57,11 +57,24 @@ class Memcached[T](host:       String,
     handleResponse(Ops.Get, handleGetResponse)
   }
 
+  def cas(key: Array[Byte],
+          ttl: Int = 0)(f: Option[T] => T): Boolean = {
+    channel.write(RequestBuilder.get(key))
+    val (casId, originalValue) = handleResponse(Ops.Get, handleGetForCasResponse)
+    val newValue               = f(originalValue)
+
+    originalValue match {
+      case None        => add(key, newValue, ttl)
+      case Some(thing) => set(key, newValue, ttl, casId)
+    }
+  }
+
   def set(key:   Array[Byte],
           value: T,
-          ttl:   Int = 0) = {
+          ttl:   Int  = 0,
+          casId: Long = 0) = {
     val encoded = transcoder.encode(value)
-    channel.write(RequestBuilder.storageRequest(Ops.Set, key, encoded.data, encoded.flags, ttl))
+    channel.write(RequestBuilder.storageRequest(Ops.Set, key, encoded.data, encoded.flags, ttl, casId))
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
@@ -135,6 +148,10 @@ class Memcached[T](host:       String,
       }
       case _ => None
     }
+  }
+
+  private def handleGetForCasResponse(header: ByteBuffer, body: ByteBuffer): (Long, Option[T]) = {
+    (header.getLong(16), handleGetResponse(header, body))
   }
 
   private def handleResponse[A](opcode:  Byte,

@@ -60,11 +60,13 @@ object RequestBuilder {
                      key:    Array[Byte],
                      value:  Array[Byte],
                      flags:  Int,
-                     ttl:    Int): Array[ByteBuffer] = {
+                     ttl:    Int,
+                     casId:  Long = 0): Array[ByteBuffer] = {
 
     Array(newRequest(32, opcode).putShort (2,  key.size.toShort)
                                 .put      (4,  8.toByte)
                                 .putInt   (8,  key.size + value.size + 8)
+                                .putLong  (16, casId)
                                 .putInt   (24, flags)
                                 .putInt   (28, ttl),
           ByteBuffer.wrap(key),

@@ -19,5 +19,6 @@ object MiscSpec extends Specification {
   "close" in {
     c.close
     c.isConnected must beEqualTo(false)
+    c.noop must throwA[Throwable]
   }
 }
