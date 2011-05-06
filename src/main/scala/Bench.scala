@@ -1,27 +1,28 @@
 import com.bitlove.memcached.Memcached
+import com.bitlove.memcached.ByteArrayTranscoder
+import com.bitlove.memcached.GzipByteArrayTranscoder
 import compat.Platform.currentTime
 
 object Bench {
-  def apply(desc: String, count: Int, f: => Any): Unit = {
-    println(desc)
-    (1 to count).foreach { _ =>
+  def apply(desc: String, count: Int)(f: => Any): Unit = {
+    println("==============================")
+    println(desc + " - running %d iterations".format(count))
+
+    val times = (1 to count).map { _ =>
       val start = currentTime
       f
-      println(currentTime - start)
+      val duration = currentTime - start
+      duration
     }
+
+    println("Min: %d Max: %d Avg: %d".format(times.min, times.max, (times.sum / times.size)))
+    println("(%s)".format(times.mkString(", ")))
   }
 }
 
 object Runbench {
   def main(args: Array[String]) = {
     val c = new Memcached("localhost", 11211)
-
-    Bench("shiit", 5, {
-      (1 to 20000).foreach { i =>
-        c.set("a".getBytes, "fuuuuuuuuu".getBytes)
-        c.get("a".getBytes)
-      }
-    })
 
     val key1  = ("Short"        * 1 ).getBytes
     val key2  = ("Sym1-2-3::45" * 8 ).getBytes
@@ -34,7 +35,7 @@ object Runbench {
 
     val iterations = 2500
 
-    Bench("set", 5, {
+    Bench("set", 5) {
       (1 to iterations).foreach { i =>
         c.set(key1, value)
         c.set(key2, value)
@@ -43,9 +44,9 @@ object Runbench {
         c.set(key2, value)
         c.set(key3, value)
       }
-    })
+    }
 
-    Bench("get", 5, {
+    Bench("get", 5) {
       (1 to iterations).foreach { i =>
         c.get(key1)
         c.get(key2)
@@ -54,9 +55,9 @@ object Runbench {
         c.get(key2)
         c.get(key3)
       }
-    })
+    }
 
-    Bench("mixed", 5, {
+    Bench("mixed", 5) {
       (1 to iterations).foreach { i =>
         c.set(key1, value)
         c.set(key2, value)
@@ -71,9 +72,9 @@ object Runbench {
         c.set(key3, value)
         c.get(key3)
       }
-    })
+    }
 
-    Bench("incr/decr", 5, {
+    Bench("incr/decr", 5) {
       (1 to iterations).foreach { i =>
         c.incr(counterKey, 1, default = Some(1))
       }
@@ -81,6 +82,25 @@ object Runbench {
       (1 to iterations).foreach { i =>
         c.decr(counterKey, 1)
       }
-    })
+    }
+
+    Bench("huge values - uncompressed", 5) {
+      val hugeValue = scala.util.Random.nextString(50000).getBytes
+      c.set(key1, hugeValue)
+
+      (1 to iterations).foreach { i =>
+        c.get(key1)
+      }
+    }
+
+    Bench("huge values - with gzip compression", 5) {
+      val hugeValue = scala.util.Random.nextString(50000).getBytes
+      implicit val transcoder = new GzipByteArrayTranscoder
+      c.set(key1, hugeValue)
+
+      (1 to iterations).foreach { i =>
+        c.get(key1)
+      }
+    }
   }
 }
