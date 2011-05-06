@@ -3,7 +3,7 @@ package com.bitlove.memcached
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-class GzipByteArrayTranscoder(minSizeToCompress: Int = 100)
+class GzipByteArrayTranscoder(minSizeToCompress: Int = 1000)
       extends Transcoder[Array[Byte]] {
   val CompressedFlag = 2
 
@@ -26,7 +26,7 @@ class GzipByteArrayTranscoder(minSizeToCompress: Int = 100)
       val bais   = new ByteArrayInputStream(encoded.data)
       val gzis   = new GZIPInputStream(bais)
       val baos   = new ByteArrayOutputStream
-      val buf    = new Array[Byte](100)
+      val buf    = new Array[Byte](10000)
       var read   = gzis.read(buf)
 
       while (read > 0) {
