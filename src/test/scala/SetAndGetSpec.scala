@@ -5,7 +5,6 @@ import org.specs.mock.Mockito
 import org.mockito.Matchers._
 
 import com.bitlove.memcached.Memcached
-import com.bitlove.memcached.SerializingTranscoder
 
 object SetAndGetSpec extends Specification with Mockito {
   val c         = new Memcached("localhost", 11211)
