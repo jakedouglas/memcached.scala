@@ -83,9 +83,11 @@ object RequestBuilder {
           ByteBuffer.wrap(value))
   }
 
-  def delete(key: Array[Byte]): Array[ByteBuffer] = {
+  def delete(key:   Array[Byte],
+             casId: Long = 0): Array[ByteBuffer] = {
     Array(newRequest(24, Ops.Delete).putShort (2,  key.size.toShort)
-                                    .putInt   (8,  key.size),
+                                    .putInt   (8,  key.size)
+                                    .putLong  (16, casId),
           ByteBuffer.wrap(key))
   }
 

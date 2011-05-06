@@ -5,9 +5,9 @@ import java.nio.channels.SocketChannel
 import java.net.InetSocketAddress
 import com.bitlove.memcached.protocol._
 
-class Memcached[T](host:       String,
-                   port:       Int,
-                   transcoder: Transcoder[T] = new ByteArrayTranscoder) {
+class Memcached[X](host: String,
+                   port: Int,
+                   defaultTranscoder: Transcoder[X] = new ByteArrayTranscoder) {
   class ProtocolError(message: String) extends Error(message)
 
   private val addr    = new InetSocketAddress(host, port)
@@ -52,50 +52,63 @@ class Memcached[T](host:       String,
     handleResponse(Ops.NoOp, handleEmptyResponse)
   }
 
-  def get(key: Array[Byte]): Option[T] = {
+  def get[T](key: Array[Byte])
+            (implicit transcoder: Transcoder[T] = defaultTranscoder): Option[T] = {
     channel.write(RequestBuilder.get(key))
-    handleResponse(Ops.Get, handleGetResponse)
+    handleResponse(Ops.Get, handleGetResponseFactory(transcoder))
   }
 
-  def cas(key: Array[Byte],
-          ttl: Int = 0)(f: Option[T] => T): Boolean = {
+  def cas[T](key: Array[Byte],
+             ttl: Int = 0)
+            (f: Option[T] => Option[T])
+            (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     channel.write(RequestBuilder.get(key))
-    val (casId, originalValue) = handleResponse(Ops.Get, handleGetForCasResponse)
+    val (casId, originalValue) = handleResponse(Ops.Get, handleGetForCasResponseFactory(transcoder))
     val newValue               = f(originalValue)
 
-    originalValue match {
-      case None        => add(key, newValue, ttl)
-      case Some(thing) => set(key, newValue, ttl, casId)
+    newValue match {
+      case None        => delete(key, casId)
+      case Some(thing) => {
+        originalValue match {
+          case None    => add(key, thing, ttl)
+          case Some(_) => set(key, thing, ttl, casId)
+        }
+      }
     }
   }
 
-  def set(key:   Array[Byte],
-          value: T,
-          ttl:   Int  = 0,
-          casId: Long = 0) = {
+  def set[T](key:   Array[Byte],
+             value: T,
+             ttl:   Int  = 0,
+             casId: Long = 0)
+            (implicit transcoder: Transcoder[T] = defaultTranscoder) = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.storageRequest(Ops.Set, key, encoded.data, encoded.flags, ttl, casId))
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
-  def add(key:   Array[Byte],
-          value: T,
-          ttl:   Int = 0) = {
+  def add[T](key:   Array[Byte],
+             value: T,
+             ttl:   Int = 0)
+            (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.storageRequest(Ops.Add, key, encoded.data, encoded.flags, ttl))
     handleResponse(Ops.Add, handleStorageResponse)
   }
 
-  def replace(key:   Array[Byte],
-              value: T,
-              ttl:   Int = 0) = {
+  def replace[T](key:   Array[Byte],
+                 value: T,
+                 ttl:   Int  = 0,
+                 casId: Long = 0)
+                (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
-    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, encoded.data, encoded.flags, ttl))
+    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, encoded.data, encoded.flags, ttl, casId))
     handleResponse(Ops.Replace, handleStorageResponse)
   }
 
-  def delete(key: Array[Byte]): Boolean = {
-    channel.write(RequestBuilder.delete(key))
+  def delete(key:   Array[Byte],
+             casId: Long = 0): Boolean = {
+    channel.write(RequestBuilder.delete(key, casId))
     handleResponse(Ops.Delete, handleStorageResponse)
   }
 
@@ -138,24 +151,28 @@ class Memcached[T](host:       String,
     }
   }
 
-  private def handleGetResponse(header: ByteBuffer, body: ByteBuffer): Option[T] = {
-    header.getShort(6) match {
-      case Status.Success => {
-        val extrasLen  = header.get(4).toInt
-        val encoded    = new EncodedValue(data  = body.array.slice(extrasLen, body.capacity),
-                                          flags = body.getInt(0))
-        Some(transcoder.decode(encoded))
+  private def handleGetResponseFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => Option[T] = {
+    (header: ByteBuffer, body: ByteBuffer) => {
+      header.getShort(6) match {
+        case Status.Success => {
+          val extrasLen  = header.get(4).toInt
+          val encoded    = new EncodedValue(data  = body.array.slice(extrasLen, body.capacity),
+                                            flags = body.getInt(0))
+          Some(transcoder.decode(encoded))
+        }
+        case _ => None
       }
-      case _ => None
     }
   }
 
-  private def handleGetForCasResponse(header: ByteBuffer, body: ByteBuffer): (Long, Option[T]) = {
-    (header.getLong(16), handleGetResponse(header, body))
+  private def handleGetForCasResponseFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => (Long, Option[T]) = {
+    (header: ByteBuffer, body: ByteBuffer) => {
+      (header.getLong(16), handleGetResponseFactory(transcoder)(header, body))
+    }
   }
 
-  private def handleResponse[A](opcode:  Byte,
-                                handler: (ByteBuffer, ByteBuffer) => A): A = {
+  private def handleResponse[T](opcode:  Byte,
+                                handler: (ByteBuffer, ByteBuffer) => T): T = {
     fillHeader
     verifyMagic
     verifyOpcode(opcode)
@@ -187,8 +204,8 @@ class Memcached[T](host:       String,
   private def verifyMagic = {
     header.get(0) match {
       case Packets.Response => ()
-      case byte             => {
-        throw new ProtocolError("Unexpected header magic 0x%x".format(byte))
+      case otherByte        => {
+        throw new ProtocolError("Unexpected header magic 0x%x".format(otherByte))
       }
     }
   }
