@@ -55,7 +55,7 @@ class Memcached[X](host: String,
   def get[T](key: Array[Byte])
             (implicit transcoder: Transcoder[T] = defaultTranscoder): Option[T] = {
     channel.write(RequestBuilder.get(key))
-    handleResponse(Ops.Get, handleGetResponseFactory(transcoder))
+    handleResponse(Ops.Get, getResponseHandlerFactory(transcoder))
   }
 
   def cas[T](key: Array[Byte],
@@ -63,7 +63,7 @@ class Memcached[X](host: String,
             (f: Option[T] => Option[T])
             (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     channel.write(RequestBuilder.get(key))
-    val (casId, originalValue) = handleResponse(Ops.Get, handleGetForCasResponseFactory(transcoder))
+    val (casId, originalValue) = handleResponse(Ops.Get, getForCasResponseHandlerFactory(transcoder))
     val newValue               = f(originalValue)
 
     newValue match {
@@ -151,7 +151,7 @@ class Memcached[X](host: String,
     }
   }
 
-  private def handleGetResponseFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => Option[T] = {
+  private def getResponseHandlerFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => Option[T] = {
     (header: ByteBuffer, body: ByteBuffer) => {
       header.getShort(6) match {
         case Status.Success => {
@@ -165,9 +165,9 @@ class Memcached[X](host: String,
     }
   }
 
-  private def handleGetForCasResponseFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => (Long, Option[T]) = {
+  private def getForCasResponseHandlerFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => (Long, Option[T]) = {
     (header: ByteBuffer, body: ByteBuffer) => {
-      (header.getLong(16), handleGetResponseFactory(transcoder)(header, body))
+      (header.getLong(16), getResponseHandlerFactory(transcoder)(header, body))
     }
   }
 
