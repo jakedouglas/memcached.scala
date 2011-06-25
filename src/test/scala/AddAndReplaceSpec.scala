@@ -1,12 +1,10 @@
 package com.bitlove.memcached.spec
 
 import org.specs.Specification
-import org.specs.mock.Mockito
-import org.mockito.Matchers._
 
 import com.bitlove.memcached.Memcached
 
-object AddAndReplaceSpec extends Specification with Mockito {
+object AddAndReplaceSpec extends Specification {
   val c           = new Memcached("localhost", 11211)
   val key         = "some key".getBytes
   val valueString = "blah"
