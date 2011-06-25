@@ -7,12 +7,12 @@ object RequestBuilder {
   def incrOrDecr(opcode:  Byte,
                  key:     Array[Byte],
                  count:   Long,
-                 ttl:     Int,
+                 ttl:     Option[Int],
                  default: Option[BigInt]): Array[ByteBuffer] = {
 
     val expiration = default match {
       case None         => 0xFFFFFFFF
-      case Some(number) => ttl
+      case Some(number) => ttl.getOrElse(0)
     }
 
     val request = newRequest(44, opcode).putShort(2,  key.size.toShort)
@@ -60,15 +60,15 @@ object RequestBuilder {
                      key:    Array[Byte],
                      value:  Array[Byte],
                      flags:  Int,
-                     ttl:    Int,
-                     casId:  Long = 0): Array[ByteBuffer] = {
+                     ttl:    Option[Int],
+                     casId:  Option[Long] = None): Array[ByteBuffer] = {
 
     Array(newRequest(32, opcode).putShort (2,  key.size.toShort)
                                 .put      (4,  8.toByte)
                                 .putInt   (8,  key.size + value.size + 8)
-                                .putLong  (16, casId)
+                                .putLong  (16, casId.getOrElse(0))
                                 .putInt   (24, flags)
-                                .putInt   (28, ttl),
+                                .putInt   (28, ttl.getOrElse(0)),
           ByteBuffer.wrap(key),
           ByteBuffer.wrap(value))
   }
@@ -84,10 +84,10 @@ object RequestBuilder {
   }
 
   def delete(key:   Array[Byte],
-             casId: Long = 0): Array[ByteBuffer] = {
+             casId: Option[Long] = None): Array[ByteBuffer] = {
     Array(newRequest(24, Ops.Delete).putShort (2,  key.size.toShort)
                                     .putInt   (8,  key.size)
-                                    .putLong  (16, casId),
+                                    .putLong  (16, casId.getOrElse(0)),
           ByteBuffer.wrap(key))
   }
 

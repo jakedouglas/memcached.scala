@@ -23,7 +23,7 @@ object SetAndGetSpec extends Specification {
     }
 
     "with ttl" in {
-      c.set(key, "blah".getBytes, ttl = 1)
+      c.set(key, "blah".getBytes, ttl = Some(1))
       new String(c.get(key).get) must beEqualTo("blah")
 
       Thread.sleep(2000)

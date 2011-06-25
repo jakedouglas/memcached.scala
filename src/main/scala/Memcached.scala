@@ -27,18 +27,26 @@ class Memcached[X](host: String,
   }
 
   def incr(key:     Array[Byte],
-           count:   Long = 1,
-           ttl:     Int  = 0,
+           count:   Long           = 1,
+           ttl:     Option[Int]    = None,
            default: Option[BigInt] = None): Option[BigInt] = {
-    channel.write(RequestBuilder.incrOrDecr(Ops.Increment, key, count, ttl, default))
+    channel.write(RequestBuilder.incrOrDecr(Ops.Increment,
+                                            key,
+                                            count,
+                                            ttl,
+                                            default))
     handleResponse(Ops.Increment, handleIncrDecrResponse)
   }
 
   def decr(key:     Array[Byte],
-           count:   Long = 1,
-           ttl:     Int  = 0,
+           count:   Long           = 1,
+           ttl:     Option[Int]    = None,
            default: Option[BigInt] = None): Option[BigInt] = {
-    channel.write(RequestBuilder.incrOrDecr(Ops.Decrement, key, count, ttl, default))
+    channel.write(RequestBuilder.incrOrDecr(Ops.Decrement,
+                                            key,
+                                            count,
+                                            ttl,
+                                            default))
     handleResponse(Ops.Decrement, handleIncrDecrResponse)
   }
 
@@ -59,7 +67,7 @@ class Memcached[X](host: String,
   }
 
   def cas[T](key: Array[Byte],
-             ttl: Int = 0)
+             ttl: Option[Int] = None)
             (f: Option[T] => Option[T])
             (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     channel.write(RequestBuilder.get(key))
@@ -67,11 +75,11 @@ class Memcached[X](host: String,
     val newValue               = f(originalValue)
 
     newValue match {
-      case None        => delete(key, casId)
+      case None        => delete(key, Some(casId))
       case Some(thing) => {
         originalValue match {
           case None    => add(key, thing, ttl)
-          case Some(_) => set(key, thing, ttl, casId)
+          case Some(_) => set(key, thing, ttl, Some(casId))
         }
       }
     }
@@ -79,35 +87,49 @@ class Memcached[X](host: String,
 
   def set[T](key:   Array[Byte],
              value: T,
-             ttl:   Int  = 0,
-             casId: Long = 0)
+             ttl:   Option[Int]  = None,
+             casId: Option[Long] = None)
             (implicit transcoder: Transcoder[T] = defaultTranscoder) = {
     val encoded = transcoder.encode(value)
-    channel.write(RequestBuilder.storageRequest(Ops.Set, key, encoded.data, encoded.flags, ttl, casId))
+    channel.write(RequestBuilder.storageRequest(Ops.Set,
+                                                key,
+                                                encoded.data,
+                                                encoded.flags,
+                                                ttl,
+                                                casId))
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
   def add[T](key:   Array[Byte],
              value: T,
-             ttl:   Int = 0)
+             ttl:   Option[Int] = None)
             (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
-    channel.write(RequestBuilder.storageRequest(Ops.Add, key, encoded.data, encoded.flags, ttl))
+    channel.write(RequestBuilder.storageRequest(Ops.Add,
+                                                key,
+                                                encoded.data,
+                                                encoded.flags,
+                                                ttl))
     handleResponse(Ops.Add, handleStorageResponse)
   }
 
   def replace[T](key:   Array[Byte],
                  value: T,
-                 ttl:   Int  = 0,
-                 casId: Long = 0)
+                 ttl:   Option[Int]  = None,
+                 casId: Option[Long] = None)
                 (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
-    channel.write(RequestBuilder.storageRequest(Ops.Replace, key, encoded.data, encoded.flags, ttl, casId))
+    channel.write(RequestBuilder.storageRequest(Ops.Replace,
+                                                key,
+                                                encoded.data,
+                                                encoded.flags,
+                                                ttl,
+                                                casId))
     handleResponse(Ops.Replace, handleStorageResponse)
   }
 
   def delete(key:   Array[Byte],
-             casId: Long = 0): Boolean = {
+             casId: Option[Long] = None): Boolean = {
     channel.write(RequestBuilder.delete(key, casId))
     handleResponse(Ops.Delete, handleStorageResponse)
   }
