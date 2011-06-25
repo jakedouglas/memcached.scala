@@ -20,6 +20,7 @@ object Bench {
   }
 }
 
+// mostly copied from mperham's dalli
 object Runbench {
   def main(args: Array[String]) = {
     val c = new Memcached("localhost", 11211)
