@@ -7,7 +7,7 @@ import com.bitlove.memcached.protocol._
 
 class Memcached[X](host: String,
                    port: Int,
-                   defaultTranscoder: Transcoder[X] = new ByteArrayTranscoder) {
+                   defaultTranscoder: Transcoder[X, Array[Byte]] = new ByteArrayTranscoder) {
   class ProtocolError(message: String) extends Error(message)
   class ValueTooLarge                  extends Error("Value too large")
   class BadIncrDecr                    extends Error("Incr/decr on non-numeric value")
@@ -25,7 +25,7 @@ class Memcached[X](host: String,
    */
   def append[T](key:   Array[Byte],
                 value: T)
-                (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+                (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.appendOrPrepend(Ops.Append, key, encoded.data))
     handleResponse(Ops.Append, handleStorageResponse)
@@ -40,7 +40,7 @@ class Memcached[X](host: String,
    */
   def prepend[T](key:   Array[Byte],
                  value: T)
-                 (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+                 (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.appendOrPrepend(Ops.Prepend, key, encoded.data))
     handleResponse(Ops.Prepend, handleStorageResponse)
@@ -107,7 +107,7 @@ class Memcached[X](host: String,
    * @return Some(T) if the key was present, otherwise None
    */
   def get[T](key: Array[Byte])
-            (implicit transcoder: Transcoder[T] = defaultTranscoder): Option[T] = {
+            (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Option[T] = {
     channel.write(RequestBuilder.get(key))
     handleResponse(Ops.Get, getResponseHandlerFactory(transcoder))
   }
@@ -115,7 +115,7 @@ class Memcached[X](host: String,
   def cas[T](key: Array[Byte],
              ttl: Option[Int] = None)
             (f: Option[T] => Option[T])
-            (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+            (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Boolean = {
     channel.write(RequestBuilder.get(key))
     val (casId, originalValue) = handleResponse(Ops.Get, getForCasResponseHandlerFactory(transcoder))
     val newValue               = f(originalValue)
@@ -135,7 +135,7 @@ class Memcached[X](host: String,
              value: T,
              ttl:   Option[Int]  = None,
              casId: Option[Long] = None)
-            (implicit transcoder: Transcoder[T] = defaultTranscoder) = {
+            (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder) = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.storageRequest(Ops.Set,
                                                 key,
@@ -149,7 +149,7 @@ class Memcached[X](host: String,
   def add[T](key:   Array[Byte],
              value: T,
              ttl:   Option[Int] = None)
-            (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+            (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.storageRequest(Ops.Add,
                                                 key,
@@ -163,7 +163,7 @@ class Memcached[X](host: String,
                  value: T,
                  ttl:   Option[Int]  = None,
                  casId: Option[Long] = None)
-                (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+                (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Boolean = {
     val encoded = transcoder.encode(value)
     channel.write(RequestBuilder.storageRequest(Ops.Replace,
                                                 key,
@@ -220,21 +220,21 @@ class Memcached[X](host: String,
     }
   }
 
-  private def getResponseHandlerFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => Option[T] = {
+  private def getResponseHandlerFactory[T](transcoder: Transcoder[T, Array[Byte]]): (ByteBuffer, ByteBuffer) => Option[T] = {
     (header: ByteBuffer, body: ByteBuffer) => {
       header.getShort(6) match {
         case Status.Success => {
           val extrasLen  = header.get(4).toInt
-          val encoded    = new EncodedValue(data  = body.array.slice(extrasLen, body.capacity),
+          val encoded    = new Transcodable(data  = body.array.slice(extrasLen, body.capacity),
                                             flags = body.getInt(0))
-          Some(transcoder.decode(encoded))
+          Some(transcoder.decode(encoded).data)
         }
         case _ => None
       }
     }
   }
 
-  private def getForCasResponseHandlerFactory[T](transcoder: Transcoder[T]): (ByteBuffer, ByteBuffer) => (Long, Option[T]) = {
+  private def getForCasResponseHandlerFactory[T](transcoder: Transcoder[T, Array[Byte]]): (ByteBuffer, ByteBuffer) => (Long, Option[T]) = {
     (header: ByteBuffer, body: ByteBuffer) => {
       (header.getLong(16), getResponseHandlerFactory(transcoder)(header, body))
     }

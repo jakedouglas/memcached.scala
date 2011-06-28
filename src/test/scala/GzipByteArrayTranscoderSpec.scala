@@ -20,7 +20,7 @@ object GzipByteArrayTranscoderSpec extends Specification {
     }
 
     "can decode it properly" in {
-      new String(t.decode(encoded)) must beEqualTo(value)
+      new String(t.decode(encoded).data) must beEqualTo(value)
     }
   }
 
@@ -37,7 +37,7 @@ object GzipByteArrayTranscoderSpec extends Specification {
     }
 
     "can decode it properly" in {
-      new String(t.decode(encoded)) must beEqualTo(value)
+      new String(t.decode(encoded).data) must beEqualTo(value)
     }
 
     "actually makes it smaller if its huge" in {

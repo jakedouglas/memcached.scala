@@ -20,7 +20,7 @@ object StringTranscoderSpec extends Specification {
     }
 
     "decodes" in {
-      t.decode(encoded) must beEqualTo("foo")
+      t.decode(encoded).data must beEqualTo("foo")
     }
   }
 }

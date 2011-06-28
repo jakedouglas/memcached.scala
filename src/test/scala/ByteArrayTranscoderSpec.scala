@@ -20,7 +20,7 @@ object ByteArrayTranscoderSpec extends Specification {
     }
 
     "decodes" in {
-      new String(t.decode(encoded)) must beEqualTo("foo")
+      new String(t.decode(encoded).data) must beEqualTo("foo")
     }
   }
 }
