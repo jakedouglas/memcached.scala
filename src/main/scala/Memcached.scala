@@ -18,11 +18,14 @@ class Memcached[X](host: String,
    * Appends data to an existing key.
    * @param key The key to append to.
    * @param value The data to append.
+   * @param transcoder The transcoder to use. Note that flags are not sent in append/prepend requests.
    * @return true if the data was appended, false if the key did not exist
    */
-  def append(key:   Array[Byte],
-             value: Array[Byte]): Boolean = {
-    channel.write(RequestBuilder.appendOrPrepend(Ops.Append, key, value))
+  def append[T](key:   Array[Byte],
+                value: T)
+                (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+    val encoded = transcoder.encode(value)
+    channel.write(RequestBuilder.appendOrPrepend(Ops.Append, key, encoded.data))
     handleResponse(Ops.Append, handleStorageResponse)
   }
 
@@ -30,11 +33,14 @@ class Memcached[X](host: String,
    * Prepends data to an existing key.
    * @param key The key to prepend to.
    * @param value The data to prepend.
+   * @param transcoder The transcoder to use. Note that flags are not sent in append/prepend requests.
    * @return true if the data was prepended, false if the key did not exist.
    */
-  def prepend(key:   Array[Byte],
-              value: Array[Byte]): Boolean = {
-    channel.write(RequestBuilder.appendOrPrepend(Ops.Prepend, key, value))
+  def prepend[T](key:   Array[Byte],
+                 value: T)
+                 (implicit transcoder: Transcoder[T] = defaultTranscoder): Boolean = {
+    val encoded = transcoder.encode(value)
+    channel.write(RequestBuilder.appendOrPrepend(Ops.Prepend, key, encoded.data))
     handleResponse(Ops.Prepend, handleStorageResponse)
   }
 
