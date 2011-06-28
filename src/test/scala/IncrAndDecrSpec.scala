@@ -27,9 +27,6 @@ object IncrAndDecrSpec extends Specification {
       c.incr(key, 1)                    must beEqualTo(None)
       c.incr(key, 1, default = Some(2)) must beEqualTo(Some(2))
       c.incr(key, 1)                    must beEqualTo(Some(3))
-      // FIXME this is something to do with how
-      // i'm writing the default value to the request
-      // new String(c.get(key).get)        must beEqualTo("3")
     }
 
     "with default value and ttl" in {
