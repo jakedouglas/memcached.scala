@@ -3,7 +3,6 @@ package com.bitlove.memcached.spec
 import org.specs.Specification
 
 import com.bitlove.memcached.Memcached
-import com.bitlove.memcached.GzipByteArrayTranscoder
 
 object MiscSpec extends Specification {
   val c = new Memcached("localhost", 11211)

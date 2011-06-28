@@ -1,8 +1,8 @@
-package com.bitlove.memcached.spec
+package com.bitlove.memcached.spec.transcoding
 
 import org.specs.Specification
 
-import com.bitlove.memcached.ByteArrayTranscoder
+import com.bitlove.memcached.transcoding.ByteArrayTranscoder
 
 object ByteArrayTranscoderSpec extends Specification {
   val t = new ByteArrayTranscoder

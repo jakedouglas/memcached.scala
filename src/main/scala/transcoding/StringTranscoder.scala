@@ -1,4 +1,4 @@
-package com.bitlove.memcached
+package com.bitlove.memcached.transcoding
 
 class StringTranscoder[T](next: Transcoder[Array[Byte], T] = new ByteArrayTranscoder)
       extends Transcoder[String, T] {

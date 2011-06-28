@@ -1,6 +1,5 @@
 import com.bitlove.memcached.Memcached
-import com.bitlove.memcached.ByteArrayTranscoder
-import com.bitlove.memcached.GzipByteArrayTranscoder
+import com.bitlove.memcached.transcoding.{ByteArrayTranscoder, GzipByteArrayTranscoder}
 import compat.Platform.currentTime
 
 object Bench {

@@ -1,4 +1,4 @@
-package com.bitlove.memcached
+package com.bitlove.memcached.transcoding
 
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}

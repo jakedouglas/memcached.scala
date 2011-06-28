@@ -1,4 +1,4 @@
-package com.bitlove.memcached
+package com.bitlove.memcached.transcoding
 
 trait Transcoder[A,B] {
   def encode(value: Transcodable[A]): Transcodable[B]

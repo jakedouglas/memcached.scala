@@ -1,8 +1,8 @@
-package com.bitlove.memcached.spec
+package com.bitlove.memcached.spec.transcoding
 
 import org.specs.Specification
 
-import com.bitlove.memcached.StringTranscoder
+import com.bitlove.memcached.transcoding.StringTranscoder
 
 object StringTranscoderSpec extends Specification {
   val t = new StringTranscoder

@@ -3,6 +3,7 @@ package com.bitlove.memcached
 import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
 import java.net.InetSocketAddress
+import com.bitlove.memcached.transcoding.{Transcoder, Transcodable, ByteArrayTranscoder}
 import com.bitlove.memcached.protocol._
 
 class Memcached[X](host: String,
