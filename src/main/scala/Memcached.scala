@@ -105,7 +105,7 @@ class Memcached[X](host: String,
    * Get a key from the cache.
    * @param key The key to fetch.
    * @param transcoder Transcoder to use for this request.
-   * @return Some(T) if the key was present, otherwise None
+   * @return Some[T] if the key was present, otherwise None
    */
   def get[T](key: Array[Byte])
             (implicit transcoder: Transcoder[T, Array[Byte]] = defaultTranscoder): Option[T] = {
@@ -113,6 +113,32 @@ class Memcached[X](host: String,
     handleResponse(Ops.Get, getResponseHandlerFactory(transcoder))
   }
 
+  /**
+   * Do a compare-and-swap operation.
+   *
+   * The supplied function will be called with the current value of the key.
+   * It may return Some[T] to attempt to CAS the key to this value,
+   * or None to attempt to delete it.
+   *
+   * In the example, if the key is presently set to "foo",
+   * it will be set to "bar". If it is any other value, it
+   * will be deleted.
+   *
+   * {{{
+   * client.cas[String]("myKey".getBytes) { value =>
+   *   value match {
+   *     case Some("foo") => Some("bar")
+   *     case _           => None
+   *   }
+   * }
+   * }}}
+   *
+   * @param key The key to CAS.
+   * @param ttl Optional TTL. If present and > 0, and the CAS succeeds, the key will expire after this many seconds.
+   * @param f CAS function
+   * @param transcoder Transcoder to use for this request.
+   * @return true if the CAS succeeded and a key was modified, otherwise false
+   */
   def cas[T](key: Array[Byte],
              ttl: Option[Int] = None)
             (f: Option[T] => Option[T])
@@ -125,13 +151,22 @@ class Memcached[X](host: String,
       case None        => delete(key, Some(casId))
       case Some(thing) => {
         originalValue match {
-          case None    => add(key, thing, ttl)
-          case Some(_) => set(key, thing, ttl, Some(casId))
+          case None    => add(key, thing, ttl)(transcoder)
+          case Some(_) => set(key, thing, ttl, Some(casId))(transcoder)
         }
       }
     }
   }
 
+  /**
+   * Set a key.
+   * @param key The key to set.
+   * @param value The value to set it to.
+   * @param ttl Optional TTL. If present and > 0, the key will expire after this many seconds.
+   * @param casId Optional CAS value. If present and > 0, the operation will fail unless this value matches the current CAS value for the key on the server.
+   * @param transcoder Transcoder to use for this request.
+   * @return true if the key was set, otherwise false.
+   */
   def set[T](key:   Array[Byte],
              value: T,
              ttl:   Option[Int]  = None,
@@ -147,6 +182,14 @@ class Memcached[X](host: String,
     handleResponse(Ops.Set, handleStorageResponse)
   }
 
+  /**
+   * Add a key, only if it doesn't already exist.
+   * @param key The key to add.
+   * @param value The value to set it to.
+   * @param ttl Optional TTL. If present and > 0, and the add succeeds, the key will expire after this many seconds.
+   * @param transcoder Transcoder to use for this request.
+   * @return true if the key did not already exist and the add succeeded, otherwise false
+   */
   def add[T](key:   Array[Byte],
              value: T,
              ttl:   Option[Int] = None)
@@ -160,6 +203,15 @@ class Memcached[X](host: String,
     handleResponse(Ops.Add, handleStorageResponse)
   }
 
+  /**
+   * Replace a key, only if it already exists.
+   * @param key The key to replace.
+   * @param value The value to set it to.
+   * @param ttl Optional TTL. If present and > 0, and the replace succeeds, the key will expire after this many seconds.
+   * @param casId Optional CAS Value. If present and > 0, the operation will fail unless this value matches the current CAS value for the key on the server.
+   * @param transcoder Transcoder to use for this request.
+   * @return true if the key existed and was replaced, otherwise false.
+   */
   def replace[T](key:   Array[Byte],
                  value: T,
                  ttl:   Option[Int]  = None,
@@ -175,6 +227,12 @@ class Memcached[X](host: String,
     handleResponse(Ops.Replace, handleStorageResponse)
   }
 
+  /**
+   * Delete a key.
+   * @param key The key to delete.
+   * @param casId Optional CAS Value. If present and > 0, the operation will fail unless this value matches the current CAS value for the key on the server.
+   * @return true if the key was deleted, otherwise false.
+   */
   def delete(key:   Array[Byte],
              casId: Option[Long] = None): Boolean = {
     channel.write(RequestBuilder.delete(key, casId))
