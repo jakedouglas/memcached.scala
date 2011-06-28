@@ -9,6 +9,8 @@ class Memcached[X](host: String,
                    port: Int,
                    defaultTranscoder: Transcoder[X] = new ByteArrayTranscoder) {
   class ProtocolError(message: String) extends Error(message)
+  class ValueTooLarge                  extends Error("Value too large")
+  class BadIncrDecr                    extends Error("Incr/decr on non-numeric value")
 
   private val addr    = new InetSocketAddress(host, port)
   private val channel = SocketChannel.open(addr)
@@ -195,7 +197,7 @@ class Memcached[X](host: String,
     header.getShort(6) match {
       case Status.Success     => Some(BigInt(1, body.array))
       case Status.KeyNotFound => None
-      case Status.BadIncrDecr => throw new ProtocolError("Incr/decr on non-numeric value")
+      case Status.BadIncrDecr => throw new BadIncrDecr
       case code               => throw new ProtocolError("Unexpected status code %d".format(code))
     }
   }
@@ -213,6 +215,7 @@ class Memcached[X](host: String,
       case Status.KeyNotFound => false
       case Status.KeyExists   => false
       case Status.NotStored   => false
+      case Status.TooLarge    => throw new ValueTooLarge
       case code               => throw new ProtocolError("Unexpected status code %d".format(code))
     }
   }
