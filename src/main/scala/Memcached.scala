@@ -14,18 +14,38 @@ class Memcached[X](host: String,
   private val channel = SocketChannel.open(addr)
   private val header  = ByteBuffer.allocate(24)
 
+  /**
+   * Appends data to an existing key.
+   * @param key The key to append to.
+   * @param value The data to append.
+   * @return true if the data was appended, false if the key did not exist
+   */
   def append(key:   Array[Byte],
              value: Array[Byte]): Boolean = {
     channel.write(RequestBuilder.appendOrPrepend(Ops.Append, key, value))
     handleResponse(Ops.Append, handleStorageResponse)
   }
 
+  /**
+   * Prepends data to an existing key.
+   * @param key The key to prepend to.
+   * @param value The data to prepend.
+   * @return true if the data was prepended, false if the key did not exist.
+   */
   def prepend(key:   Array[Byte],
               value: Array[Byte]): Boolean = {
     channel.write(RequestBuilder.appendOrPrepend(Ops.Prepend, key, value))
     handleResponse(Ops.Prepend, handleStorageResponse)
   }
 
+  /**
+   * Increments a numeric key
+   * @param key The key to increment
+   * @param count The amount to increment by
+   * @param default If the key does not exist, set it to this.
+   * @param ttl If a default value is supplied and the key did not exist, expire it after this ttl in seconds.
+   * @return None if the key did not exist, otherwise Some(BigInt) with the new incremented number
+   */
   def incr(key:     Array[Byte],
            count:   Long           = 1,
            ttl:     Option[Int]    = None,
@@ -38,6 +58,14 @@ class Memcached[X](host: String,
     handleResponse(Ops.Increment, handleIncrDecrResponse)
   }
 
+  /**
+   * Decrements a numeric key
+   * @param key The key to decrement
+   * @param count The amount to decrement by
+   * @param default If the key does not exist, set it to this.
+   * @param ttl If a default value is supplied and the key did not exist, expire it after this ttl in seconds.
+   * @return None if the key did not exist, otherwise Some(BigInt) with the new decremented number
+   */
   def decr(key:     Array[Byte],
            count:   Long           = 1,
            ttl:     Option[Int]    = None,
@@ -50,6 +78,10 @@ class Memcached[X](host: String,
     handleResponse(Ops.Decrement, handleIncrDecrResponse)
   }
 
+  /**
+   * Flushes all items in the cache.
+   * @param after If given, flush the cache after this many seconds instead of immediately.
+   */
   def flush(after: Option[Int] = None): Unit = {
     channel.write(RequestBuilder.flush(after))
     handleResponse(Ops.Flush, handleEmptyResponse)
@@ -60,6 +92,12 @@ class Memcached[X](host: String,
     handleResponse(Ops.NoOp, handleEmptyResponse)
   }
 
+  /**
+   * Get a key from the cache.
+   * @param key The key to fetch.
+   * @param transcoder Transcoder to use for this request.
+   * @return Some(T) if the key was present, otherwise None
+   */
   def get[T](key: Array[Byte])
             (implicit transcoder: Transcoder[T] = defaultTranscoder): Option[T] = {
     channel.write(RequestBuilder.get(key))
