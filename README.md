@@ -12,6 +12,7 @@ Setup
 -----
 
 Just add it to your sbt project definition:
+
 ```scala
 val memcached = "com.bitlove" %%
                   "memcached" %
@@ -43,6 +44,7 @@ Multiple threads
 The client itself is not intended to be used by multiple threads at once,
 so you need to use a connection pool for a multi-threaded program. You
 can use your own favorite connection pool, or a simple one is included:
+
 ```scala
 import com.bitlove.memcached.pool.MemcachedPool
 
