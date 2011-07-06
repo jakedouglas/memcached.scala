@@ -20,6 +20,10 @@ val memcached = "com.bitlove" %%
                       "http://cloud.github.com/downloads/jakedouglas/memcached.scala/memcached.scala_2.8.1-0.0.1.jar"
 ```
 
+Or you can clone the repo and build it for whatever version of scala you
+are using. Beware that running the tests will flush your local memcached
+instance.
+
 Simple usage
 ------------
 
@@ -73,10 +77,10 @@ Transcoders can be put to use at different levels of granularity:
 * Define an implicit transcoder to use in a certain scope.
 * Pass in a transcoder on a per-request basis.
 
-Docs
-----
+API / Docs
+----------
 
-For now, please refer to the [scaladocs](http://jakedouglas.github.com/memcached.scala).
+For now, please refer to the [scala docs](http://jakedouglas.github.com/memcached.scala).
 Eventually there will be more here.
 
 Issues
