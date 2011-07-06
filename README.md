@@ -13,12 +13,11 @@ Setup
 
 Just add it to your sbt project definition:
 ```scala
-  val memcached = "com.bitlove" %%
-                    "memcached" %
-                      "0.0.1" from
-                        "http://cloud.github.com/downloads/jakedouglas/memcached.scala/memcached.scala_2.8.1-0.0.1.jar"
+val memcached = "com.bitlove" %%
+                  "memcached" %
+                    "0.0.1" from
+                      "http://cloud.github.com/downloads/jakedouglas/memcached.scala/memcached.scala_2.8.1-0.0.1.jar"
 ```
-
 
 Simple usage
 ------------
