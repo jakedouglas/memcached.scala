@@ -80,7 +80,7 @@ Transcoders can be put to use at different levels of granularity:
 API / Docs
 ----------
 
-For now, please refer to the [scala docs](http://jakedouglas.github.com/memcached.scala).
+For now, please refer to the [scala docs](http://jakedouglas.github.com/memcached.scala/com/bitlove/memcached/Memcached.html).
 Eventually there will be more here.
 
 Issues
