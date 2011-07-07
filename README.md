@@ -11,7 +11,7 @@ me and we can fix it.
 A few obvious things that are currently TODOs:
 
 * Pipelining
-* Sharding
+* Sharding (should probably use [this](https://github.com/twitter/util/tree/master/util-hashing))
 
 Setup
 -----
