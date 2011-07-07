@@ -8,6 +8,11 @@ correct semantics per my interpretation of the protocol and looking at
 other clients, but it may not be perfect, so feel free to disagree with
 me and we can fix it.
 
+A few obvious things that are currently TODOs:
+
+* Pipelining
+* Sharding
+
 Setup
 -----
 
